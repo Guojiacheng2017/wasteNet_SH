@@ -1,0 +1,14 @@
+model + training + test:
+	CNN -> Res-U-net
+	Parameter counting
+	Loss: cross-entropy
+		......
+	
+preprocessing: 
+	dataset size modification
+	zero padding
+	compress to 128 * 128
+
+Evaluation:
+	ROC
+	...
