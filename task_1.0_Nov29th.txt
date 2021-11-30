@@ -1,5 +1,6 @@
 model + training + test:
-	CNN -> Res-U-net
+	CNN -> Res-net 
+	(U-net seems that it do not suit for classification task, and resnet is already enough)
 	Parameter counting
 	Loss: cross-entropy
 		......
