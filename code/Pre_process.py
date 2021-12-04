@@ -16,7 +16,7 @@ import numpy as np
 
 '''Define global variable'''
 # dataset path
-data_path = "./dataset"
+data_path = "../dataset"
 # image size
 image_size = 128
 # label
