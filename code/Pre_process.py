@@ -50,10 +50,10 @@ transform_random = [
 transform_random = transforms.RandomChoice(transform_random)
 # Conventional processing and one of other processing
 transform_normal = [
+    transforms.Resize([128, 128]),  # Resetting image resolution
     transforms.ToTensor(),  # To [0, 1]
     transforms.Normalize([mean_r, mean_g, mean_b], [std_r, std_g, std_b]),
-    transform_random,
-    transforms.Resize([image_size, image_size])  # Resetting image resolution
+    transform_random
 ]
 transform = transforms.Compose(transform_normal)
 
