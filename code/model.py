@@ -12,6 +12,8 @@ from config_training import config
 batch_size = config['batch_size']
 
 
+#--------------------------------------------------------------------------------------------------#
+
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
@@ -38,6 +40,7 @@ class ConvNet(nn.Module):
         return x
 
 
+    
 # CNN
 #--------------------------------------------------------------------------------------------------#
 class wasteModel_CNN(nn.Module):
@@ -65,6 +68,7 @@ class wasteModel_CNN(nn.Module):
         return fcl_rst
 
 
+    
 # Resnet
 #--------------------------------------------------------------------------------------------------#
 
@@ -88,30 +92,34 @@ class ResBlock(nn.Module):
 
     def forward(self, X):
         body = self.block(X)
-        #         print(body.shape, self.shortcut(X).shape)
+        # print(body.shape, self.shortcut(X).shape)
         body = body + self.shortcut(X)
         body = F.relu(body)
         return body
 
+    
 
 class ResNet(nn.Module):
-    def __init__(self, ResBlock, num_classes=4):
+    def __init__(self, ResBlock, img_size=128, num_classes=4):
         super(ResNet, self).__init__()
         # img.shape = 1 here
         self.inchannel = 64
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(3, self.inchannel, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(self.inchannel),
             nn.ReLU()
-        )
-        self.layer1 = self.make_layer(ResBlock, 64, 2, stride=1)
-        self.layer2 = self.make_layer(ResBlock, 128, 2, stride=2)
-        self.layer3 = self.make_layer(ResBlock, 256, 2, stride=2)
-        self.layer4 = self.make_layer(ResBlock, 512, 2, stride=2)
-        self.avgPool = nn.AvgPool2d(4)
-        # self.fc_pre = nn.Linear(512/4 * 512/4, 1024)
-        self.fc = nn.Linear(8192, num_classes)
+        ) # keep the original size
+        self.layer1 = self.make_layer(ResBlock, 64, 2, stride=1) # keep size, input c = 64, out c = 128
+        self.layer2 = self.make_layer(ResBlock, 128, 2, stride=2)# be quarter size / 4, input c = 128, out c = 256
+        self.layer3 = self.make_layer(ResBlock, 256, 2, stride=2)# be quarter size / 4, input c = 256, out c = 512
+        self.layer4 = self.make_layer(ResBlock, 512, 2, stride=2)# be quarter size / 4, input c = 512, out c = 1024
+#         print(self.layer4)
+        self.avgPool = nn.AvgPool2d(4) # / 16
+        # self.fc_pre = nn.Linear((img_size/8 * img_size/ 8)/16 * 1024, ___)
+#         print(int(img_size*img_size/1024))
+#         self.fc = nn.Linear(256, num_classes)   # img_size = 32
+        self.fc = nn.Linear(int(img_size*img_size*512/1024), num_classes) # 512 channels / (2^5 * 2^5) for each dimension
 
     def make_layer(self, block, channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -135,7 +143,7 @@ class ResNet(nn.Module):
         out = self.avgPool(out)
         # print("avgPool:", out.shape)
         out = out.view(out.size(0), -1)
-        # out = out.reshape(batch_size,128,128)
+#         out = out.reshape(batch_size, -1)
         out = self.fc(out)
         return out
 

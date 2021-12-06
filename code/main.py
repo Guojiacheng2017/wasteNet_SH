@@ -111,11 +111,11 @@ batch_size = config['batch_size']
 # n_iteration = np.floor(len(data_all)*(1 - val_percentage) / batch_size)
 
 
-resNet = ResNet(ResBlock).to(device)
+resNet = ResNet(ResBlock, img_size=image_size).to(device)
 wasteCNN = wasteModel_CNN(image_size).to(device)
 CNN = ConvNet().to(device)
 
-net = wasteCNN
+net = resNet
 
 if torch.cuda.is_available():
     net = net.cuda()
