@@ -35,8 +35,8 @@ image_size = config['image_size']  # 128
 
 
 # Data split
-test_percentage = config['test_percentage'] # train = 0.8, test = 0.2
-val_percentage = config['val_percentage']   # train = 0.8 * 0.75, val = 0.8 * 0.25, test = 0.2
+# test_percentage = config['test_percentage'] # train = 0.8, test = 0.2
+val_percentage = config['val_percentage']   # train = 0.8, val = 0.2
 batch_size = config['batch_size']
 
 # Use CPU or GPU
@@ -75,7 +75,7 @@ data_all = torchvision.datasets.ImageFolder(root=data_path, transform=transform)
 
 
 
-def dataset_sampler(dataset, test_percentage, val_percentage):
+def dataset_sampler(dataset, val_percentage): #  test_percentage,
     """
     split dataset into train set, val set, test set
     :param dataset
@@ -83,22 +83,22 @@ def dataset_sampler(dataset, test_percentage, val_percentage):
     """
     sample_num = len(dataset)
     file_idx = list(range(sample_num))
-    train_idx, test_idx = train_test_split(file_idx, test_size=test_percentage, random_state=42)
-    train_idx, val_idx = train_test_split(train_idx, test_size=val_percentage, random_state=42)
+#     train_idx, test_idx = train_test_split(file_idx, test_size=test_percentage, random_state=42)
+    train_idx, val_idx = train_test_split(file_idx, test_size=val_percentage, random_state=42)
     # all_sampler = SubsetRandomSampler(file_idx)
     train_sampler = SubsetRandomSampler(train_idx)
     val_sampler = SubsetRandomSampler(val_idx)
-    test_sampler = SubsetRandomSampler(test_idx)
-    return train_sampler, val_sampler, test_sampler
+#     test_sampler = SubsetRandomSampler(test_idx)
+    return train_sampler, val_sampler #, test_sampler
 
 
 
 # get all the training, validation and test set here
-train_sampler, val_sampler, test_sampler = dataset_sampler(data_all, test_percentage, val_percentage)
+train_sampler, val_sampler = dataset_sampler(data_all, val_percentage) # , test_sampler
 # loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=all_sampler)
 train_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=train_sampler)
 val_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=val_sampler)
-test_loader = torch.utils.data.DataLoader(data_all, sampler=test_sampler)
+# test_loader = torch.utils.data.DataLoader(data_all, sampler=test_sampler)
 
 # train_tensor = torch.tensor(train_loader, dtype=torch.float32)
 # val_tensor = torch.tensor(val_loader, dtype=torch.float32)
@@ -106,16 +106,16 @@ test_loader = torch.utils.data.DataLoader(data_all, sampler=test_sampler)
 
 #--------------------------------------------------------------------------------------------------#
 
-n_epoch = 20
+n_epoch = config['epoch']
 batch_size = config['batch_size']
-n_iteration = np.floor(len(data_all)*(1 - test_percentage)*(1 - val_percentage) / batch_size)
+# n_iteration = np.floor(len(data_all)*(1 - val_percentage) / batch_size)
 
 
 resNet = ResNet(ResBlock).to(device)
 wasteCNN = wasteModel_CNN(image_size).to(device)
 CNN = ConvNet().to(device)
 
-net = resNet
+net = wasteCNN
 
 if torch.cuda.is_available():
     net = net.cuda()
