@@ -4,31 +4,39 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import SubsetRandomSampler
 import numpy as np
+from config_training import config
+import pandas as pd
+
 '''
-    预处理内容：
-    1. 转换为张量
-    2. 归一化
-    3. 对图像进行随机变换
-    4. 分辨率统一为image_size * image_size
-    
-    训练相关参数可在全局变量中进行修改（label除外）
+    Content of preprocessing
+    1. convert to tensor
+    2. Normalization
+    3. Random transformation
+    4. The resolution is changed to image_size * image_size
+
+    all the other parameters can be changed in the global var (except the label)
 '''
 
 '''Define global variable'''
 # dataset path
-data_path = "../dataset"
+data_path = config['data_path']
 # image size
-image_size = 128
+image_size = 256        # 128
+
 # label
 dry_trash = 0
 poison_trash = 1
 recycle_trash = 2
 wet_trash = 3
+
 # Data split
-val_percentage = 0.1
-batch_size = 20
+test_percentage = 0.2
+val_percentage = 0.25
+batch_size = config['batch_size']
+
 # Use CPU or GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 # Mean and std
 mean_r = 0.659
 mean_g = 0.617
@@ -61,30 +69,53 @@ transform = transforms.Compose(transform_normal)
 data_all = torchvision.datasets.ImageFolder(root=data_path, transform=transform)
 
 
+
 def dataset_sampler(dataset):
     """
-    split dataset into train set and val set
-    :param dataset:
+    split dataset into train set, val set, test set
+    :param dataset
     :return: split sampler
     """
     sample_num = len(dataset)
     file_idx = list(range(sample_num))
-    train_idx, val_idx = train_test_split(file_idx, test_size=val_percentage, random_state=42)
+    train_idx, test_idx = train_test_split(file_idx, test_size=test_percentage, random_state=42)
+    train_idx, val_idx = train_test_split(train_idx, test_size=val_percentage, random_state=42)
     # all_sampler = SubsetRandomSampler(file_idx)
     train_sampler = SubsetRandomSampler(train_idx)
     val_sampler = SubsetRandomSampler(val_idx)
-    return train_sampler, val_sampler
+    test_sampler = SubsetRandomSampler(test_idx)
+    return train_sampler, val_sampler, test_sampler
 
 
-train_sampler, val_sampler = dataset_sampler(data_all)
+# get all the training, validation and test set here
+train_sampler, val_sampler, test_sampler = dataset_sampler(data_all)
 # loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=all_sampler)
 train_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=train_sampler)
-test_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=val_sampler)
+val_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_workers=0, sampler=val_sampler)
+test_loader = torch.utils.data.DataLoader(data_all, sampler=test_sampler)
+
 
 # how to use data loader
-for i, data in enumerate(train_loader):
-    inputs = data[0].to(device)
-    labels = data[1].to(device)
+# for i, data in enumerate(train_loader):
+#     inputs = data[0].to(device)
+#     labels = data[1].to(device)
+#     print(labels.shape)
+#     for idx, batch in inputs:
+#         dataframe = pd.DataFrame({'path': '', 'index': idx, 'label': labels[idx]})
+#
+#     dataframe.to_csv('train_data.csv', index=False, sep=',')
+#
+# for i, data in enumerate(test_loader):
+#     inputs = data[0].to(device)
+#     labels = data[1].to(device)
+#     dataframe = pd.DataFrame({'index': inputs, 'label': labels})
+#     dataframe.to_csv('test_data.csv', index=False, sep=',')
+#
+# for i, data in enumerate(val_loader):
+#     inputs = data[0].to(device)
+#     labels = data[1].to(device)
+#     dataframe = pd.DataFrame({'index': inputs, 'label': labels})
+#     dataframe.to_csv('val_data.csv', index=False, sep=',')
 
 '''Calculate mean and std'''
 '''
