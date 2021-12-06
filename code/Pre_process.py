@@ -95,6 +95,11 @@ val_loader = torch.utils.data.DataLoader(data_all, batch_size=batch_size, num_wo
 test_loader = torch.utils.data.DataLoader(data_all, sampler=test_sampler)
 
 
+for i, data in enumerate(train_loader):
+    inputs = data[0].to(device)
+    labels = data[1].to(device)
+    print(i, type(inputs), type(labels))
+
 # how to use data loader
 # for i, data in enumerate(train_loader):
 #     inputs = data[0].to(device)

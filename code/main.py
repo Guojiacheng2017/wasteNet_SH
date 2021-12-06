@@ -2,7 +2,7 @@
 # Life first, G2 second, Code third, LECLERC forth
 import os.path
 
-from model import ResNet, ResBlock
+from model import ConvNet, wasteModel_CNN, ResNet, ResBlock
 import numpy as np
 import torch
 import torch.nn as nn
@@ -23,13 +23,16 @@ import pandas as pd
 data_path = config['data_path']
 model_path = config['model_path']
 # image size
-image_size = 256  # 128
+image_size = config['image_size']  # 128
 
 # label
-dry_trash = 1
-poison_trash = 2
-recycle_trash = 3
-wet_trash = 4
+
+# dry_trash = 1
+# poison_trash = 2
+# recycle_trash = 3
+# wet_trash = 4
+
+
 
 # Data split
 test_percentage = config['test_percentage'] # train = 0.8, test = 0.2
@@ -37,7 +40,7 @@ val_percentage = config['val_percentage']   # train = 0.8 * 0.75, val = 0.8 * 0.
 batch_size = config['batch_size']
 
 # Use CPU or GPU
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Mean and std
 mean_r = 0.659
@@ -53,14 +56,14 @@ transform_random = [
     transforms.RandomHorizontalFlip(),  # Flip horizontal
     transforms.RandomVerticalFlip(),  # Flip vertical
     transforms.RandomRotation(30),  # Rotation randomly in 30°
-    transforms.RandomCrop([128, 128]),  # Crop randomly
+    transforms.RandomCrop([image_size, image_size]),  # Crop randomly
     transforms.GaussianBlur(kernel_size=5, sigma=(10.0, 10.0)),  # Gaussian blur
     transforms.Grayscale(3)  # To gray
 ]
 transform_random = transforms.RandomChoice(transform_random)
 # Conventional processing and one of other processing
 transform_normal = [
-    transforms.Resize([128, 128]),  # Resetting image resolution
+    transforms.Resize([image_size, image_size]),  # Resetting image resolution
     transforms.ToTensor(),  # To [0, 1]
     transforms.Normalize([mean_r, mean_g, mean_b], [std_r, std_g, std_b]),
     transform_random
@@ -108,10 +111,19 @@ batch_size = config['batch_size']
 n_iteration = np.floor(len(data_all)*(1 - test_percentage)*(1 - val_percentage) / batch_size)
 
 
-resNet = ResNet(ResBlock)
-print("model structure:", resNet)
+resNet = ResNet(ResBlock).to(device)
+wasteCNN = wasteModel_CNN(image_size).to(device)
+CNN = ConvNet().to(device)
 
-optimizer = optim.Adam(resNet.parameters(), lr=config['lr'])
+net = resNet
+
+if torch.cuda.is_available():
+    net = net.cuda()
+    net = net.to(device)
+
+print("model structure:", net)
+
+optimizer = optim.Adam(net.parameters(), lr=config['lr'])
 criterion = nn.CrossEntropyLoss()
 
 
@@ -147,11 +159,11 @@ def data_format(data_loader):
     return data_input, data_label
 
 # ------------------------------------------------------- #
-val_input = []
-val_label = []
-for _, data in enumerate(val_loader):
-    val_input.append(data[0].to(device))
-    val_label.append(data[1].to(device))
+# val_input = []
+# val_label = []
+# for _, data in enumerate(val_loader):
+#     val_input.append(data[0].to(device))
+#     val_label.append(data[1].to(device))
 
 # ------------------------------------------------------- #
 # save the parameter at the ckpt file
@@ -173,21 +185,27 @@ def save(epoch, net, path):
     print("Saving checkpoints in {}".format(savePath))
 
 # ------------------------------------------------------- #
+from tqdm import tqdm
+
+print("# ------------------------------------------------------- #")
+
 # epoch
 for idx in range(n_epoch):
     print("epoch:", idx)
-
+    start_time = time.time()
     # iteration
-    for i, data in enumerate(train_loader):
-        inputs = (data[0].to(device))
-        labels = (data[1].to(device)).long() # .reshape(inputs.shape[0], -1)
-        train_pred = resNet(inputs)
+    for i, data in tqdm(enumerate(train_loader)):
+        inputs_train = (data[0].to(device))
+        labels_train = (data[1].to(device)).long() # .reshape(inputs.shape[0], -1)
+        train_pred = net(inputs_train)
         # print(inputs.size())
+        # print(i, type(inputs_train))
         # print(train_pred, labels)
         # print(train_pred.size(), labels.size())
-        train_loss_i = criterion(train_pred, labels)
+        train_loss_i = criterion(train_pred, labels_train)
+#         print(train_loss_i)
 
-        train_loss.append(train_loss_i.size())
+        train_loss.append(train_loss_i)
 
         optimizer.zero_grad()
         train_loss_i.backward()
@@ -197,27 +215,32 @@ for idx in range(n_epoch):
     ave_train_loss = np.sum(train_loss) / len(train_loss)
     train_loss_list[idx] = ave_train_loss
 
+    for i, data in enumerate(val_loader):
+        inputs_val = (data[0].to(device))
+        labels_val = (data[1].to(device)).long() # .reshape(inputs.shape[0], -1)
+        val_pred = net(inputs_val)
+        val_loss_i = criterion(val_pred, labels_val)
+
+        val_loss.append(train_loss_i)
+        
+        ave_val_loss = np.sum(val_loss) / len(val_loss)
+        val_loss_list[idx] = ave_val_loss
+        
     # validation for one epoch
-    val_pred = resNet(val_input)
-    val_loss_i = criterion(val_pred.index(1)+1, val_label)
-    val_loss.append(val_loss_i)
+    # val_pred = resNet(val_input.to(device))
+    # val_loss_i = criterion(val_pred, val_label)
+    # val_loss.append(val_loss_i)
 
     # train_accu_list[i] = train_accu
     # val_loss_list[i] = val_loss
     # val_accu_list[i] = val_accu
     save(idx, resNet, model_path)
-
-    print('\n$Epoch: {}\t$training loss: {}\t$validation loss: {}'.format(idx + 1, ave_train_loss, val_loss_i))
+    
+    print('\n$Epoch: {}\t$training loss: {}\t$validation loss: {}'.format(idx + 1, ave_train_loss, ave_val_loss))
+    print('Time: {}'.format(time.time() - start_time))
     print('-----------------------------------------------------------------------------------------')
-
-
-
-
-
-
-
-
-
+    
+    
 
 
 
