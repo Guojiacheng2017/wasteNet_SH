@@ -15,21 +15,21 @@ batch_size = config['batch_size']
 #--------------------------------------------------------------------------------------------------#
 
 class ConvNet(nn.Module):
-    def __init__(self):
+    def __init__(self, img_size):
         super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 5, 3)
-        self.conv2 = nn.Conv2d(5, 10, 3) # nn.Sequential()
+        self.conv1 = nn.Conv2d(3, 32, 3)
+        self.conv2 = nn.Conv2d(32, 64, 3) # nn.Sequential()
         self.relu = nn.ReLU()
         self.padding = nn.ZeroPad2d(1)
-        self.fc1 = nn.Linear(10 * 8 * 8, 128)
+        self.fc1 = nn.Linear(4 * img_size * img_size, 128)
         self.fc2 = nn.Linear(128, 84)
         self.fc3 = nn.Linear(84, 10)
         self.flat = nn.Flatten(1)
         self.max_pool = nn.MaxPool2d(2)
 
     def forward(self, x):
-        covlayer1 = self.max_pool(self.relu(self.conv1(self.padding(x)))) # 32 * 32 -> 32 * 32
-        covlayer2 = self.max_pool(self.relu(self.conv2(self.padding(covlayer1)))) # 32 * 32 -> 16 * 16
+        covlayer1 = self.max_pool(self.relu(self.conv1(self.padding(x)))) # size * size -> size/2 * size/2
+        covlayer2 = self.max_pool(self.relu(self.conv2(self.padding(covlayer1)))) # size/2 * size/2 -> size/4 * size/4
 #         x = torch.flatten(covlayer2, 1)
 #         covlayer2.reshape(covlayer2.shape[0], -1)
         covlayer2 = self.flat(covlayer2)

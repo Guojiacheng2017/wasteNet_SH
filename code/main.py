@@ -111,11 +111,12 @@ batch_size = config['batch_size']
 # n_iteration = np.floor(len(data_all)*(1 - val_percentage) / batch_size)
 
 
+
 resNet = ResNet(ResBlock, img_size=image_size).to(device)
 wasteCNN = wasteModel_CNN(image_size).to(device)
-CNN = ConvNet().to(device)
+CNN = ConvNet(image_size).to(device)
 
-net = resNet
+net = CNN        #####
 
 if torch.cuda.is_available():
     net = net.cuda()
@@ -179,10 +180,16 @@ def save(epoch, net, path):
     }
     if not os.path.exists(path):
         os.mkdir(path)
-
-    savePath = os.path.join(path, 'model_epoch_{}'.format(epoch + 1))
-    torch.save(stats, savePath)
-    print("Saving checkpoints in {}".format(savePath))
+    
+    if(epoch == -1):
+        savePath = os.path.join(path, 'model_CNN')   ##### model_res18  /  model_CNN  /   model_wasteCNN
+        torch.save(stats, savePath)
+        print("Final model checkpoints in {}".format(savePath))
+    else:
+        savePath = os.path.join(path, 'model_epoch_{}'.format(epoch + 1))
+        torch.save(stats, savePath)
+        print("Saving checkpoints in {}".format(savePath))
+    
 
 # ------------------------------------------------------- #
 from tqdm import tqdm
@@ -223,8 +230,8 @@ for idx in range(n_epoch):
 
         val_loss.append(train_loss_i)
         
-        ave_val_loss = np.sum(val_loss) / len(val_loss)
-        val_loss_list[idx] = ave_val_loss
+    ave_val_loss = np.sum(val_loss) / len(val_loss)
+    val_loss_list[idx] = ave_val_loss
         
     # validation for one epoch
     # val_pred = resNet(val_input.to(device))
@@ -234,14 +241,14 @@ for idx in range(n_epoch):
     # train_accu_list[i] = train_accu
     # val_loss_list[i] = val_loss
     # val_accu_list[i] = val_accu
-    save(idx, resNet, model_path)
+    save(idx, net, model_path)
     
     print('\n$Epoch: {}\t$training loss: {}\t$validation loss: {}'.format(idx + 1, ave_train_loss, ave_val_loss))
     print('Time: {}'.format(time.time() - start_time))
     print('-----------------------------------------------------------------------------------------')
     
     
-
+save(-1, net, model_path)
 
 
 # for i in range(n_epoch):
