@@ -27,15 +27,17 @@ model_path = config['model_path']
 image_size = config['image_size']
 
 # load model path
-model_load_path = '../model/res18_epoch/res18_epoch_50'
+# model_load_path = ''
 
 batch_size = 32
-test_percentage = 0.95
+test_percentage = 0.001
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
 else:
     device = torch.device("cpu")
+
+# device = torch.device("cpu")
 
 # Mean and std
 mean_r = 0.659
@@ -121,14 +123,19 @@ def data_format(data_loader):
     return data_input, data_label
 
 
+@torch.no_grad()
 def evaluate_model(y_pred, y, k):
     n = y.shape[0]
     # find the prediction class label
     _, pred_class = y_pred.max(dim=1)
     # correct = (pred_class == y).sum().item()
 
-    np_y = y.detach().numpy()
-    np_pred_class = pred_class.detach().numpy()
+#     np_y = y
+#     np_pred_class = pred_class
+    
+    np_y = y.detach().cpu().numpy()
+    np_pred_class = pred_class.detach().cpu().numpy()
+    
     correct = 0
     for j in range(len(np_y)):
         if np_pred_class[j] == np_y[j]:
@@ -136,16 +143,15 @@ def evaluate_model(y_pred, y, k):
 
     accu = round((correct / n), 3)
 
-    #np_y = y.detach().numpy()
-    #np_pred_class = pred_class.detach().numpy()
 
+#     cm = confusion_matrix(np_y, np_pred_class)
     cm = confusion_matrix(np_y, np_pred_class)
 
-    for j in list(range(1, class_num)):
+    for j in list(range(0, class_num)):
         precision[j] = round((cm[j, j] / cm[j, :].sum()), 3)
         recall[j] = round(cm[j, j] / cm[:, j].sum(), 3)
         f1_score[j] = round((2 * recall[j] * precision[j] / (recall[j] + precision[j])), 3)
-        FPR[j] = round((cm[:, j].sum() - cm[1, 1]) / (cm.sum() - cm[1, :].sum()), 3)
+        FPR[j] = round((cm[:, j].sum() - cm[j, j]) / (cm.sum() - cm[j, :].sum()), 3)
 
     print("accu: %.3f" % accu)
 
@@ -159,13 +165,15 @@ def evaluate_model(y_pred, y, k):
     print("f1_score: " + str(f1_score))
     print("FPR: " + str(FPR))
 
-    y_one_hot = label_binarize(y, np.arange(class_num))
-    # print(y_one_hot)
-    auc = roc_auc_score(y_one_hot, y_pred.detach().numpy(), average='micro')
+#     y_one_hot = np.zeros(len(np_y), class_num)
+    y_one_hot = label_binarize(np_y, np.arange(class_num))
+#     print(y_one_hot.shape, y_pred.detach().cpu().numpy().shape)
+    
+    auc = round(roc_auc_score(y_one_hot, y_pred.detach().cpu().numpy(), average='micro'),3)
 
-    print("auc: %.3f" % auc)
+    print("auc: "  + str(auc))
 
-    fpr, tpr, thresholds = roc_curve(y_one_hot.ravel(), y_pred.detach().numpy().ravel())  # ravel()表示平铺开来
+    fpr, tpr, thresholds = roc_curve(y_one_hot.ravel(), y_pred.detach().cpu().numpy().ravel())  # ravel()表示平铺开来
     plt.figure()
     plt.plot(fpr, tpr, linewidth=2, label='AUC=%.3f' % auc)
 
@@ -174,8 +182,9 @@ def evaluate_model(y_pred, y, k):
     plt.xlabel('False Postivie Rate')
     plt.ylabel('True Positive Rate')
     plt.legend()
-    plt.savefig('../out_fig/ROC_'+str(k)+'.png')
-    # plt.show()
+    plt.savefig('../out_fig/resNet_ROC_'+str(k)+'.png')
+#     plt.show()
+
     return accu, auc
 
 
@@ -195,7 +204,7 @@ def plot_conf_matrix(k,cm, classes, normalize=False, title='Confusion matrix', c
         print('Confusion matrix, without normalization')
     print(cm)
     plt.figure()
-    # plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
@@ -210,7 +219,7 @@ def plot_conf_matrix(k,cm, classes, normalize=False, title='Confusion matrix', c
     plt.tight_layout()
     plt.xlabel('True label')
     plt.ylabel('Predicted label')
-    plt.savefig('../out_fig/confusion_matrix_'+str(k)+'.png')
+    plt.savefig('../out_fig/resNet_confusion_matrix_'+str(k)+'.png')
 # ——————————————————————————————————————————————————————————————————
 
 
@@ -228,57 +237,60 @@ wasteCNN = wasteModel_CNN(image_size).to(device)
 CNN = ConvNet(image_size).to(device)
 net = resNet
 
-for k in list(range(50, 51)):
-    print(k)
-    model_load_path = '../model/res18_epoch/res18_epoch_' + str(k)
-    # load model weight
-    weight = torch.load(model_load_path, map_location=device)
-    net.load_state_dict(weight['model'])
+with torch.no_grad():
+    for k in list(range(1, 51)):
+        print(k)
+        model_load_path = '../model/res18_epoch/model_epoch_' + str(k)
+        # load model weight
+        weight = torch.load(model_load_path, map_location=device)
+        net.load_state_dict(weight['model'])
+        net.eval()
 
-    # batch_num = 0
-    test_pred_eval = torch.zeros(1, 4)
-    labels_test_eval = torch.zeros(1, 4)
+        # batch_num = 0
+        test_pred_eval = torch.zeros(1, 4)
+        labels_test_eval = torch.zeros(1, 4)
 
-    for i, data in enumerate(test_loader):
-        inputs_test = (data[0].to(device))
-        labels_test = (data[1].to(device)).long() #.detach().numpy()  # .reshape(inputs.shape[0], -1)
-        test_pred = net(inputs_test)
-        if i == 0:
-            test_pred_eval = test_pred
-            labels_test_eval = labels_test
+        for i, data in enumerate(test_loader):
+            torch.cuda.empty_cache()         #############
+            inputs_test = (data[0].to(device))
+            labels_test = (data[1].to(device)).long() #.detach().numpy()  # .reshape(inputs.shape[0], -1)
+            test_pred = net(inputs_test)
+            if i == 0:
+                test_pred_eval = test_pred
+                labels_test_eval = labels_test
 
-        else:
-            test_pred_eval = torch.cat((test_pred_eval, test_pred), 0)
-            labels_test_eval = torch.cat((labels_test_eval, labels_test), 0)
+            else:
+                test_pred_eval = torch.cat((test_pred_eval, test_pred), 0)
+                labels_test_eval = torch.cat((labels_test_eval, labels_test), 0)
 
-        print(i)
+#             print(i)
 
-        # batch_num = i
-        # labels_test[i] = labels_test
-        # test_pred[i] = test_pred.detach().numpy()
+            # batch_num = i
+            # labels_test[i] = labels_test
+            # test_pred[i] = test_pred.detach().numpy()
 
-        # print(labels_test.shape)
-        # print(test_pred.shape)
-        # print(labels_test_eval.shape)
-        print(test_pred_eval.shape)
-        print(inputs_test.shape)
+            # print(labels_test.shape)
+            # print(test_pred.shape)
+            # print(labels_test_eval.shape)
+#             print(test_pred_eval.shape)
+#             print(inputs_test.shape)
 
-    accu[k-1], auc[k-1] = evaluate_model(test_pred_eval, labels_test_eval, k)
+        accu[k-1], auc[k-1] = evaluate_model(test_pred_eval, labels_test_eval, k)
 
 plt.figure()
-plt.plot(len(accu), accu, 'ro')
+plt.plot(np.arange(len(accu)), accu, 'ro',np.arange(len(accu)), accu)
 plt.xlabel('epoch')
 plt.ylabel('accuracy')
 plt.title('Test Accuracy')
-plt.savefig('../out_fig/res_TestAccuracy.png')
+plt.savefig('../out_fig/resNet_TestAccuracy.png')
 # plt.show()
 
 plt.figure()
-plt.plot(len(auc), auc, 'ro')
+plt.plot(np.arange(len(auc)), auc, 'ro',np.arange(len(auc)), auc)
 plt.xlabel('epoch')
 plt.ylabel('AUC')
 plt.title('Test AUC')
-plt.savefig('../out_fig/res_AUC.png')
+plt.savefig('../out_fig/resNet_AUC.png')
 # plt.show()
 print('-----------------------------------------------------------------------------------------')
 
