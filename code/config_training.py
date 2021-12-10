@@ -1,5 +1,6 @@
 config = {
     'data_path': '../dataset',
+    'test_data_path': '../dataset_test',
     'model_path': '../model/CNN_epoch', ##### '../model/res18_epoch', '../model/wasteCNN_epoch', '../model/CNN_epoch'
     # 'preprocess_result_path': '',
     'image_size': 128,  # 256
