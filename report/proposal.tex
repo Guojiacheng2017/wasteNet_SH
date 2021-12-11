@@ -1,0 +1,53 @@
+% THIS TEMPLATE IS A WORK IN PROGRESS
+
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+
+%\lhead{\includegraphics[width=0.2\textwidth]{nyush-logo.pdf}}
+\fancypagestyle{firstpage}{%
+  \lhead{NYU Shanghai}
+  \rhead{
+  %%%% COMMENT OUT / UNCOMMENT THE LINES BELOW TO FIT WITH YOUR MAJOR(S)
+  %\&
+  %Data
+   Machine Learning 2021}
+}
+
+%%%% PROJECT TITLE
+\title{The Classification of Trash Based on Chinese Trash Polity}
+
+%%%% NAMES OF ALL THE STUDENTS INVOLVED (first-name last-name)
+\author{\href{mailto:cw3923@nyu.edu}{Chenyang Wen}, \href{mailto:ct2831@nyu.edu}{Chenyu Tang},
+\href{mailto:jg5315@nyu.edu}{Jiacheng Guo}}
+
+\date{\vspace{-5ex}} %NO DATE
+
+
+\begin{document}
+\maketitle
+\thispagestyle{firstpage}
+
+\section*{Introduction}
+
+\paragraph{In Shanghai, garbage classification has been implemented for more than 20 years. Meanwhile, the classification standard has changed many times. Published on July 1, 2019, Shanghai Municipal Household Garbage Management Regulations divides the classification standard into four categories: recyclable waste, residual waste, household waste and hazardous waste.  The strict implementation with high quality of garbage classification cannot be separated from the accurate classification by every citizen in Shanghai. In this project, we want to develop a framework to automatic garbage categorization.}
+
+\paragraph{Similar to how people identify garbage categories, we also want our framework to be able to output garbage categories when it sees the garbage (i.e., the input image).  The first step in this process requires the ability to recognize the content of the input image. In the field of image identification, machine learning, especially convolutional neural networks, has huge advantages.  After recognizing the image content, our method needs to classify it. Also, there are many classification algorithms in machine learning, with which we hope to achieve good classification performance.}
+
+\paragraph{We have noticed that many papers have made outstanding contributions in the field of image identification, such as gradient-based Learning Applied to Document Recognition, Very Deep Convolutional Networks for large-scale Image Recognition. We will draw on established algorithms to develop this framework for our project.}
+
+\section*{Objectives}
+
+\paragraph{As for the dataset, the project decided to use some garbage images. We found two datasets from garbage classification topic in the kaggle platform, which contains thousands of pictures of more than a dozen different types of garbage, such as waste metal, plastic, batteries, fruit and vegetable residues, and so on. Therefore, the project reassigned four labels to the source dataset first: recyclable waste, residual waste, household waste and hazardous waste, for example, scrap metal and waste plastic relabeled as recyclable waste. In this way, the dataset that meets the requirements of the project is obtained, which contains thousands of pictures and four labeled garbage types.}
+
+\paragraph{Since the project is based on the image classification, the most common way to classify the image for now is to use deep neural network. And this is also the most mature way in computer vision. We will use Convolutional Neural Network as the based network. The very first reason is our project is image-based project and CNN can convolute the image information spatially and get a intensive feature. What we do is to input our images from different class of trash or garbage, and learn their different features. Based on the dataset, we might try different network in different structure. For example, if there is a need to classify the images which are in different scales, we will try U-net for it to gather better feature understanding on the same image.}
+
+\paragraph{What we want to do is based on the trash image, and get the classification to tell whether it is a recyclable, residual, household or hazardous waste, which can really help for the residents in the city where they are required to sort their waste into these four groups.}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+
+
+\end{document}
