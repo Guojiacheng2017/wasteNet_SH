@@ -23,7 +23,7 @@ class ConvNet(nn.Module):
         self.padding = nn.ZeroPad2d(1)
         self.fc1 = nn.Linear(4 * img_size * img_size, 128)
         self.fc2 = nn.Linear(128, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc3 = nn.Linear(84, 4)
         self.flat = nn.Flatten(1)
         self.max_pool = nn.MaxPool2d(2)
 

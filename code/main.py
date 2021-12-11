@@ -228,7 +228,7 @@ for idx in range(n_epoch):
         val_pred = net(inputs_val)
         val_loss_i = criterion(val_pred, labels_val)
 
-        val_loss.append(train_loss_i)
+        val_loss.append(val_loss_i)
         
     ave_val_loss = np.sum(val_loss) / len(val_loss)
     val_loss_list[idx] = ave_val_loss
