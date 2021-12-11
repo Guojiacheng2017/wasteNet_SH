@@ -7,6 +7,6 @@ resNet = ResNet(ResBlock, img_size=image_size)
 wasteCNN = wasteModel_CNN(image_size)
 CNN = ConvNet(image_size)
 
-net = resNet
+net = CNN
 
 print("model structure:", net)
